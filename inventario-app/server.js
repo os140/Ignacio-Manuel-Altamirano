@@ -23,11 +23,11 @@ app.use('/api', (req, res, next) => {
 
 const CATEGORY_PREFIX = {
   COMPUTADORAS: 'PC',
-  MOUSE: 'MOU',
-  ROUTERS: 'ROU',
-  IMPRESORAS: 'IMP',
-  TECLADOS: 'TEC',
-  MONITORES: 'MON'
+  MOUSE: 'M',
+  ROUTERS: 'R',
+  IMPRESORAS: 'IM',
+  TECLADOS: 'T',
+  MONITORES: 'MO'
 };
 
 function getCategoryPrefix(category){
@@ -304,7 +304,19 @@ app.get('/api/computers', requireAuth, async (_req, res) => {
          notas,
          imagen_path,
          fecha_registro,
-         (row_number() OVER (PARTITION BY categoria ORDER BY fecha_registro ASC, id ASC))::text AS display_identificador
+         (CASE
+            WHEN categoria IS NOT NULL THEN
+              COALESCE((CASE
+                WHEN categoria = 'COMPUTADORAS' THEN 'PC'
+                WHEN categoria = 'MOUSE' THEN 'M'
+                WHEN categoria = 'ROUTERS' THEN 'R'
+                WHEN categoria = 'IMPRESORAS' THEN 'IM'
+                WHEN categoria = 'TECLADOS' THEN 'T'
+                WHEN categoria = 'MONITORES' THEN 'MO'
+                ELSE UPPER(LEFT(categoria, 3))
+              END), 'GEN') || '-' || (row_number() OVER (PARTITION BY categoria ORDER BY fecha_registro ASC, id ASC))::text
+            ELSE NULL
+          END) AS display_identificador
        FROM computers
        ORDER BY categoria ASC, fecha_registro ASC, id ASC`
     );
