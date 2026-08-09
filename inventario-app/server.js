@@ -37,7 +37,7 @@ function getCategoryPrefix(category){
 function toClientComputer(row){
   return {
     id: row.id,
-    Identificador: row.identificador,
+    Identificador: row.display_identificador || row.identificador,
     Categoria: row.categoria,
     Marca: row.marca,
     Modelo: row.modelo,
@@ -293,9 +293,20 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 app.get('/api/computers', requireAuth, async (_req, res) => {
   try{
     const result = await query(
-      `SELECT id, identificador, categoria, marca, modelo, estado, ubicacion, notas, imagen_path, fecha_registro
+      `SELECT
+         id,
+         identificador,
+         categoria,
+         marca,
+         modelo,
+         estado,
+         ubicacion,
+         notas,
+         imagen_path,
+         fecha_registro,
+         (row_number() OVER (PARTITION BY categoria ORDER BY fecha_registro ASC, id ASC))::text AS display_identificador
        FROM computers
-       ORDER BY id DESC`
+       ORDER BY categoria ASC, fecha_registro ASC, id ASC`
     );
     return res.json({ items: result.rows.map(toClientComputer) });
   } catch (err){
