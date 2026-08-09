@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Inventario de Equipos - Ignacio Manuel Altamirano</title>
+<style>
+  :root{
+    --header:#bfe8ff; --sidebar:#3f6f89; --bg:#677c89; --panel:#ececec;
+    --btn-green:#6fd06f; --btn-red:#e58b8b; --muted:#7a8a92; --white:#fff;
+    --accent:#8ed6ff;
+  }
+  html,body{height:100%;margin:0;font-family: 'Segoe UI', Roboto, Arial;background:var(--bg);}
+  header{background:var(--header);padding:16px 20px;border-bottom:6px solid rgba(0,0,0,0.05)}
+  .app-header{display:flex;align-items:center;justify-content:center;gap:14px;max-width:1100px;margin:0 auto}
+  .header-logo-wrap{width:66px;height:66px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+  .header-logo{width:100%;height:100%;object-fit:cover}
+  .header-title{font-size:34px;font-weight:700;color:#000;text-align:center}
+  .app{display:flex;height:calc(100vh - 86px);gap:12px;padding:12px}
+  .sidebar{width:200px;background:var(--sidebar);padding:16px;border-radius:6px;color:#fff;box-sizing:border-box;position:relative}
+  .side-home{background:#fff;color:#000;border-radius:8px;padding:10px 12px;margin-bottom:14px;text-align:left;border:none;cursor:pointer}
+  .categories{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .category-btn{background:#dfe9ee;color:#000;border-radius:8px;padding:10px;text-align:left;border:none;cursor:pointer}
+  .category-btn.active{background:#9fc6d8}
+  .sidebar .logout{position:absolute;bottom:16px;left:16px;right:16px;background:#fff;color:#000;padding:10px;border-radius:8px;border:none;cursor:pointer}
+  .main{flex:1;background:var(--panel);padding:18px;border-radius:8px;overflow:auto;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .card{background:#dff3f7;padding:18px;border-radius:8px;min-width:180px;flex:1;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff}
+  .table th,.table td{border-bottom:1px solid #ddd;padding:12px;text-align:left}
+  .actions{display:flex;gap:8px;align-items:center}
+  .btn-action{border:none;padding:8px 10px;border-radius:6px;cursor:pointer;background:transparent}
+  .btn-add{background:var(--btn-green);color:#000;border:none;padding:10px 16px;border-radius:8px;cursor:pointer}
+  .btn-cancel{background:var(--btn-red);color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer}
+  .form-row{display:flex;gap:12px;align-items:center;margin:8px 0}
+  label{width:110px;font-weight:600}
+  input[type=text],select,textarea{flex:1;padding:8px;border-radius:6px;border:1px solid #bfc9cd;background:#fff}
+  .img-preview{width:260px;height:180px;background:#f6f6f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;border:2px dashed #ddd;cursor:pointer;overflow:hidden}
+  .img-preview img{width:100%;height:100%;object-fit:cover}
+  .login-panel{max-width:640px;margin:40px auto;background:#f3f3f3;padding:24px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.08)}
+  .center{display:flex;justify-content:center;align-items:center}
+  footer{font-size:12px;color:#fff;text-align:center;padding:8px}
+  .small{font-size:12px;color:var(--muted)}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer}
+  /* modal */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:999}
+  .modal .card{background:#fff;padding:18px;border-radius:8px;max-width:90%;max-height:90%;overflow:auto}
+  .flex-between{display:flex;justify-content:space-between;align-items:center}
+  /* responsive */
+  @media(max-width:900px){
+    .app-header{flex-wrap:wrap;gap:10px}
+    .header-title{font-size:24px}
+    .header-logo-wrap{width:54px;height:54px}
+    .app{flex-direction:column}
+    .sidebar{width:100%;display:flex;flex-direction:row;overflow:auto}
+    .categories{flex-direction:row;gap:6px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="app-header">
+    <div class="header-logo-wrap">
+      <img id="header-logo" class="header-logo" alt="Logo" />
+    </div>
+    <div class="header-title">"IGNACIO MANUEL ALTAMIRANO"</div>
+  </div>
+</header>
+
+<div id="app">
+  <!-- Login / Register -->
+  <div id="auth" class="login-panel" style="display:none">
+    <div class="center"><div style="width:88px;height:88px;border-radius:50%;background:#000;margin-bottom:6px"></div></div>
+    <h2 style="text-align:center">INVENTARIO DE EQUIPOS ESCOLARES</h2>
+    <div id="auth-forms">
+      <div id="login-form">
+        <div class="form-row"><label>Usuario:</label><input id="login-user" type="text" /></div>
+        <div class="form-row"><label>Contraseña:</label><input id="login-pass" type="password" /></div>
+        <div class="form-row center"><button id="btn-login" class="btn-add">INICIAR SESIÓN</button></div>
+        <div class="form-row center small">¿No tienes cuenta? <a href="#" id="show-register">REGÍSTRATE</a></div>
+      </div>
+      <div id="register-form" style="display:none">
+        <div class="form-row"><label>Usuario:</label><input id="reg-user" type="text" /></div>
+        <div class="form-row"><label>Contraseña:</label><input id="reg-pass" type="password" /></div>
+        <div class="form-row center"><button id="btn-register" class="btn-add">REGISTRARSE</button>
+          <button id="btn-cancel-reg" class="btn-cancel">CANCELAR</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main app -->
+  <div class="app" id="main-app" style="display:none">
+    <aside class="sidebar">
+      <button id="btn-home" class="side-home">INICIO</button>
+      <div style="margin-top:12px"><strong>EQUIPOS:</strong></div>
+      <div class="categories" id="categories">
+        <button class="category-btn" data-cat="COMPUTADORAS">COMPUTADORAS</button>
+        <button class="category-btn" data-cat="MOUSE">MOUSE</button>
+        <button class="category-btn" data-cat="ROUTERS">ROUTERS</button>
+        <button class="category-btn" data-cat="IMPRESORAS">IMPRESORAS</button>
+        <button class="category-btn" data-cat="TECLADOS">TECLADOS</button>
+        <button class="category-btn" data-cat="MONITORES">MONITORES</button>
+      </div>
+      <button id="btn-logout" class="logout">CERRAR SESIÓN ➔</button>
+    </aside>
+
+    <section class="main">
+      <div class="topbar">
+        <div><strong>Inventario de Equipos Escolares</strong></div>
+        <div id="welcome" class="small">BIENVENIDO</div>
+      </div>
+
+      <div id="dashboard" style="display:none">
+  <div class="cards">
+    <div class="card" style="background:#7ed07a"><div style="font-size:48px">💻</div><div id="count-computadoras" style="font-size:32px">0</div></div>
+    <div class="card" style="background:#f0b5d6"><div style="font-size:48px">🖱️</div><div id="count-mouse" style="font-size:32px">0</div></div>
+    <div class="card" style="background:#f3d78a"><div style="font-size:48px">🛜</div><div id="count-routers" style="font-size:32px">0</div></div>
+    <div class="card" style="background:#a7dff7"><div style="font-size:48px">🖨️</div><div id="count-impresoras" style="font-size:32px">0</div></div>
+    <div class="card" style="background:#f5b5b5"><div style="font-size:48px">⌨️</div><div id="count-teclados" style="font-size:32px">0</div></div>
+    <div class="card" style="background:#d8b5f0"><div style="font-size:48px">🖥️</div><div id="count-monitores" style="font-size:32px">0</div></div>
+  </div>
+</div>
+
+      <div id="category-view" style="display:none">
+        <div class="flex-between">
+          <h2 id="category-title">COMPUTADORAS</h2>
+          <div>
+            <button id="btn-export-csv" class="btn" style="margin-left:8px">EXPORTAR CSV</button>
+            <button id="btn-add-equipo" class="btn-add" style="margin-left:12px">+ AGREGAR EQUIPO</button>
+          </div>
+        </div>
+
+        <table class="table" id="items-table">
+          <thead>
+            <tr><th>ID</th><th>MARCA</th><th>MODELO</th><th>ESTADO</th><th>UBICACIÓN</th><th>IMAGEN</th><th>ACCIONES</th></tr>
+          </thead>
+          <tbody id="items-body"></tbody>
+        </table>
+      </div>
+
+      <div id="form-view" style="display:none">
+        <h2 id="form-title">AGREGAR EQUIPO</h2>
+        <div style="display:flex;gap:20px;align-items:flex-start">
+          <div class="img-preview" id="img-preview" title="Haz clic para subir/cambiar imagen">Sin imagen</div>
+          <div style="flex:1">
+            <div class="form-row"><label>Categoría:</label>
+              <select id="field-categoria">
+                <option>COMPUTADORAS</option><option>MOUSE</option><option>ROUTERS</option><option>IMPRESORAS</option><option>TECLADOS</option><option>MONITORES</option>
+              </select></div>
+            <div class="form-row"><label>Marca:</label><input id="field-marca" type="text" /></div>
+            <div class="form-row"><label>Modelo:</label><input id="field-modelo" type="text" /></div>
+            <div class="form-row"><label>Estado:</label>
+              <select id="field-estado"><option>BIEN</option><option>REVISIÓN</option><option>DAÑADO</option></select></div>
+            <div class="form-row"><label>Ubicación:</label><input id="field-ubicacion" type="text" /></div>
+            <div class="form-row"><label>Notas:</label><textarea id="field-notas"></textarea></div>
+            <div class="form-row"><label>Imagen:</label><input id="field-image" type="file" accept="image/*" style="border:none" /></div>
+            <div class="form-row center">
+              <button id="btn-save" class="btn-add">ACEPTAR</button>
+              <button id="btn-cancel" class="btn-cancel">CANCELAR</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <input type="file" id="change-image-file" accept="image/*" style="display:none" />
+    </section>
+  </div>
+</div>
+
+<!-- modal para ver/cambiar imagen -->
+<div id="img-modal" class="modal">
+  <div class="card" style="max-width:760px">
+    <div class="flex-between" style="margin-bottom:8px">
+      <strong> <img src="logo.png" width="500" height="300"></strong>
+      <div>
+        <button id="modal-change" class="btn-add" style="margin-right:8px">Cambiar imagen</button>
+        <button id="modal-close" class="btn-cancel">Cerrar</button>
+      </div>
+    </div>
+    <div id="modal-img-area" style="text-align:center">
+      <img id="modal-img" src="" style="max-width:100%;max-height:70vh;border-radius:6px"/>
+    </div>
+  </div>
+</div>
+
+<footer>Versión SQL para servidor. Compatible con GitHub y Fly.io.</footer>
+
+<script>
+const API_BASE = '/api';
+const DEFAULT_LOGO_URL = '';
+const LOGO_STORAGE_KEY = 'inventario_header_logo';
+let currentUser = null;
+let editId = null;
+let modalTargetId = null;
+let activeCategory = 'COMPUTADORAS';
+let currentCategoryItems = [];
+
+function $(id){ return document.getElementById(id); }
+
+function setHeaderLogo(src){
+  const logo = $('header-logo');
+  logo.src = src || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"%3E%3Crect width="120" height="120" fill="%23ffffff"/%3E%3Ctext x="60" y="68" text-anchor="middle" font-size="20" font-family="Arial" fill="%233f6f89"%3ELOGO%3C/text%3E%3C/svg%3E';
+}
+
+function loadHeaderLogo(){
+  const saved = localStorage.getItem(LOGO_STORAGE_KEY);
+  if(saved){
+    setHeaderLogo(saved);
+    return;
+  }
+  setHeaderLogo(DEFAULT_LOGO_URL);
+}
+
+function getToken(){
+  return localStorage.getItem('inventario_token');
+}
+
+function setToken(token){
+  if(token){
+    localStorage.setItem('inventario_token', token);
+  } else {
+    localStorage.removeItem('inventario_token');
+  }
+}
+
+async function apiFetch(path, options = {}){
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  const token = getToken();
+  if(token){
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if(!response.ok){
+    throw new Error(payload.error || 'Error en la solicitud');
+  }
+
+  return payload;
+}
+
+async function registerUser(username, password){
+  await apiFetch('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, password })
+  });
+}
+
+async function authenticate(username, password){
+  const payload = await apiFetch('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password })
+  });
+
+  setToken(payload.token);
+  return payload.user;
+}
+
+async function loadCurrentUser(){
+  const token = getToken();
+  if(!token){
+    return null;
+  }
+
+  try{
+    const payload = await apiFetch('/auth/me');
+    return payload.user;
+  } catch {
+    setToken(null);
+    return null;
+  }
+}
+
+async function getAllComputers(){
+  const payload = await apiFetch('/computers');
+  return payload.items;
+}
+
+async function getById(id){
+  const payload = await apiFetch(`/computers/${id}`);
+  return payload.item;
+}
+
+async function addComputer(data){
+  await apiFetch('/computers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+async function updateComputer(id, data){
+  await apiFetch(`/computers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+}
+
+async function removeComputer(id){
+  await apiFetch(`/computers/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+async function changeItemImage(id, dataURL){
+  await apiFetch(`/computers/${id}/image`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ImagenPath: dataURL })
+  });
+}
+
+async function showLogin(){
+  $('auth').style.display = 'block';
+  $('main-app').style.display = 'none';
+}
+
+async function showMain(){
+  $('auth').style.display = 'none';
+  $('main-app').style.display = 'flex';
+  $('dashboard').style.display = 'block';
+  $('category-view').style.display = 'none';
+  $('form-view').style.display = 'none';
+  await refreshDashboard();
+}
+
+async function refreshDashboard(){
+  const all = await getAllComputers();
+  $('count-computadoras').innerText = all.filter((x) => x.Categoria === 'COMPUTADORAS').length;
+  $('count-mouse').innerText = all.filter((x) => x.Categoria === 'MOUSE').length;
+  $('count-routers').innerText = all.filter((x) => x.Categoria === 'ROUTERS').length;
+  $('count-impresoras').innerText = all.filter((x) => x.Categoria === 'IMPRESORAS').length;
+  $('count-teclados').innerText = all.filter((x) => x.Categoria === 'TECLADOS').length;
+  $('count-monitores').innerText = all.filter((x) => x.Categoria === 'MONITORES').length;
+}
+
+async function openCategory(cat){
+  activeCategory = cat;
+  document.querySelectorAll('.category-btn').forEach((b) => b.classList.toggle('active', b.dataset.cat === cat));
+  $('category-title').innerText = cat;
+  $('dashboard').style.display = 'none';
+  $('category-view').style.display = 'block';
+  $('form-view').style.display = 'none';
+  await loadCategoryItems();
+}
+
+async function loadCategoryItems(){
+  const all = await getAllComputers();
+  const items = all.filter((x) => x.Categoria === activeCategory);
+  currentCategoryItems = items;
+  const tbody = $('items-body');
+  tbody.innerHTML = '';
+
+  for(const it of items){
+    const tr = document.createElement('tr');
+    const imgCell = it.ImagenPath
+      ? `<img src="${it.ImagenPath}" data-id="${it.id}" style="width:88px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer">`
+      : '<div style="width:88px;height:56px;display:flex;align-items:center;justify-content:center;color:#aaa;background:#fafafa;border-radius:6px">No foto</div>';
+
+    tr.innerHTML = `<td>${it.Identificador || it.id}</td>
+      <td>${it.Marca || ''}</td><td>${it.Modelo || ''}</td><td>${it.Estado || ''}</td><td>${it.Ubicacion || ''}</td>
+      <td>${imgCell}</td>
+      <td class="actions"></td>`;
+
+    const actionsTd = tr.querySelector('.actions');
+
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'btn-action';
+    btnEdit.title = 'Editar';
+    btnEdit.innerText = '✏️';
+    btnEdit.onclick = () => openEdit(it.id);
+
+    const btnDelete = document.createElement('button');
+    btnDelete.className = 'btn-action';
+    btnDelete.title = 'Eliminar';
+    btnDelete.innerText = '🗑️';
+    btnDelete.onclick = async () => {
+      if(currentUser.role !== 'admin'){
+        alert('Sólo admin puede eliminar.');
+        return;
+      }
+      if(confirm('Eliminar equipo?')){
+        await removeComputer(it.id);
+        await loadCategoryItems();
+        await refreshDashboard();
+      }
+    };
+
+    const btnChange = document.createElement('button');
+    btnChange.className = 'btn-action';
+    btnChange.title = 'Cambiar imagen';
+    btnChange.innerText = '🖼️';
+    btnChange.onclick = () => openModalForItem(it.id, it.ImagenPath);
+
+    actionsTd.appendChild(btnEdit);
+    actionsTd.appendChild(btnChange);
+    actionsTd.appendChild(btnDelete);
+    tbody.appendChild(tr);
+  }
+
+  document.querySelectorAll('#items-body img').forEach((img) => {
+    img.addEventListener('click', (e) => {
+      const id = Number(e.target.dataset.id);
+      openModalForItem(id, e.target.src);
+    });
+  });
+}
+
+function openAdd(){
+  editId = null;
+  $('form-title').innerText = 'AGREGAR EQUIPO';
+  $('field-categoria').value = activeCategory;
+  $('field-marca').value = '';
+  $('field-modelo').value = '';
+  $('field-estado').value = 'BIEN';
+  $('field-ubicacion').value = '';
+  $('field-notas').value = '';
+  $('img-preview').innerText = 'Sin imagen';
+  $('field-image').value = '';
+  $('form-view').style.display = 'block';
+  $('category-view').style.display = 'none';
+}
+
+async function openEdit(id){
+  editId = id;
+  const it = await getById(id);
+  if(!it){
+    return;
+  }
+
+  $('form-title').innerText = 'EDITAR EQUIPO';
+  $('field-categoria').value = it.Categoria;
+  $('field-marca').value = it.Marca || '';
+  $('field-modelo').value = it.Modelo || '';
+  $('field-estado').value = it.Estado || 'BIEN';
+  $('field-ubicacion').value = it.Ubicacion || '';
+  $('field-notas').value = it.Notas || '';
+  if(it.ImagenPath){
+    $('img-preview').innerHTML = `<img src="${it.ImagenPath}">`;
+  } else {
+    $('img-preview').innerText = 'Sin imagen';
+  }
+  $('form-view').style.display = 'block';
+  $('category-view').style.display = 'none';
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.readAsDataURL(file);
+  });
+}
+
+$('btn-save').addEventListener('click', async () => {
+  try{
+    const data = {
+      Categoria: $('field-categoria').value,
+      Marca: $('field-marca').value,
+      Modelo: $('field-modelo').value,
+      Estado: $('field-estado').value,
+      Ubicacion: $('field-ubicacion').value,
+      Notas: $('field-notas').value
+    };
+
+    const f = $('field-image').files[0];
+    if(f){
+      data.ImagenPath = await readFileAsDataURL(f);
+    }
+
+    if(editId){
+      const existing = await getById(editId);
+      data.Identificador = existing.Identificador;
+      if(!data.ImagenPath && existing.ImagenPath){
+        data.ImagenPath = existing.ImagenPath;
+      }
+      await updateComputer(editId, data);
+    } else {
+      await addComputer(data);
+    }
+
+    $('form-view').style.display = 'none';
+    $('category-view').style.display = 'block';
+    await loadCategoryItems();
+    await refreshDashboard();
+  } catch (err){
+    alert(err.message);
+  }
+});
+
+$('btn-cancel').addEventListener('click', () => {
+  $('form-view').style.display = 'none';
+  $('category-view').style.display = 'block';
+});
+
+$('img-preview').addEventListener('click', () => $('field-image').click());
+$('field-image').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if(!f){
+    return;
+  }
+  const d = await readFileAsDataURL(f);
+  $('img-preview').innerHTML = `<img src="${d}">`;
+});
+
+function openModalForItem(id, src){
+  modalTargetId = id;
+  $('modal-img').src = src || '';
+  $('img-modal').style.display = 'flex';
+}
+
+$('modal-close').addEventListener('click', () => {
+  $('img-modal').style.display = 'none';
+  modalTargetId = null;
+  $('change-image-file').value = '';
+});
+
+$('modal-change').addEventListener('click', () => $('change-image-file').click());
+$('change-image-file').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if(!f || !modalTargetId){
+    return;
+  }
+  const d = await readFileAsDataURL(f);
+  await changeItemImage(modalTargetId, d);
+  $('modal-img').src = d;
+  await loadCategoryItems();
+  await refreshDashboard();
+});
+
+$('btn-login').addEventListener('click', async () => {
+  try{
+    const u = $('login-user').value.trim();
+    const p = $('login-pass').value;
+    const user = await authenticate(u, p);
+    currentUser = user;
+    $('welcome').innerText = `BIENVENIDO! ${user.username}`;
+    await showMain();
+  } catch (err){
+    alert(err.message || 'Usuario/contraseña incorrectos');
+  }
+});
+
+$('show-register').addEventListener('click', () => {
+  $('login-form').style.display = 'none';
+  $('register-form').style.display = 'block';
+});
+
+$('btn-cancel-reg').addEventListener('click', () => {
+  $('register-form').style.display = 'none';
+  $('login-form').style.display = 'block';
+});
+
+$('btn-register').addEventListener('click', async () => {
+  try{
+    const u = $('reg-user').value.trim();
+    const p = $('reg-pass').value;
+    if(!u || !p){
+      alert('Rellena usuario y contraseña');
+      return;
+    }
+    await registerUser(u, p);
+    alert('Registrado. Inicia sesión.');
+    $('register-form').style.display = 'none';
+    $('login-form').style.display = 'block';
+  } catch (err){
+    alert(err.message);
+  }
+});
+
+document.querySelectorAll('.category-btn').forEach((b) => b.addEventListener('click', (e) => openCategory(e.target.dataset.cat)));
+$('btn-home').addEventListener('click', () => {
+  $('dashboard').style.display = 'block';
+  $('category-view').style.display = 'none';
+  $('form-view').style.display = 'none';
+});
+$('btn-add-equipo').addEventListener('click', openAdd);
+$('btn-logout').addEventListener('click', () => {
+  currentUser = null;
+  setToken(null);
+  showLogin();
+});
+
+$('btn-export-csv').addEventListener('click', () => {
+  const header = ['Identificador', 'Categoria', 'Marca', 'Modelo', 'Estado', 'Ubicacion', 'Notas', 'FechaRegistro'];
+  const rows = currentCategoryItems.map((i) => header.map((h) => JSON.stringify(i[h] || '')).join(','));
+  const csv = [header.join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `${activeCategory}.csv`;
+  a.click();
+});
+
+(async function(){
+  loadHeaderLogo();
+  currentUser = await loadCurrentUser();
+  if(currentUser){
+    $('welcome').innerText = `BIENVENIDO! ${currentUser.username}`;
+    await showMain();
+    return;
+  }
+  await showLogin();
+})();
+</script>
+</body>
+</html>
